@@ -40,7 +40,7 @@ fn rename_files_in_directory(dir: &path::Path) -> std::io::Result<()> {
 
         for (index, entry) in files.iter().enumerate() {
             display_file_details(&entry.path(), "Before Rename").unwrap();
-            let file_name = format!("{:03}.jpg", index + 1); // Adjust file extension as needed
+            let file_name = format!("{:03}.txt", index + 1); // Adjust file extension as needed
             let new_path = move_and_rename_file(&entry.path(), dir, &file_name)?;
             display_file_details(&new_path, "After Rename").unwrap();
         }
