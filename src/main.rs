@@ -57,7 +57,8 @@ fn visit_dirs(dir: &path::Path, target_dir: &path::Path) -> std::io::Result<()> 
             let path = entry.path();
             if path.is_dir() {
                 // Recursively visit subdirectories
-                visit_sub_dirs(&path, target_dir)?;
+                visit_sub_dirs(&path, &path)?;
+                rename_files_in_directory(&path);
             } else {
                 println!("File: {:?}", path);
             }
@@ -123,7 +124,6 @@ fn run_tasks(main_directory: &path::Path, target_directory: &path::Path, interva
         visit_dirs(&main_directory, &target_directory)?;
 
         // Rename files in target directory
-        rename_files_in_directory(&target_directory)?;
 
         println!("Completed run {}/{}. Duration: {:?}", run, times, start_time.elapsed());
         
