@@ -1,7 +1,7 @@
 use rand::seq::SliceRandom;
 use std::fs::{self};
 use std::path;
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::time::{SystemTime, UNIX_EPOCH, Duration, SystemTimeError};
 use std::io::{self};
 use std::{thread, time::Instant};
 use filetime::FileTime;
@@ -12,22 +12,13 @@ fn move_and_rename_file(
     target_dir: &path::Path,
     new_name: &str,
 ) -> std::io::Result<path::PathBuf> {
-    let extension = file_path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
-    
-    // Construct the new file with original extension
-    let new_file_name = if extension.is_empty() {
-        new_name.to_string()
-    } else {
-        format!("{}.{}", new_name, extension)
-    };
-
     let mut new_path = target_dir.to_path_buf();
-    new_path.push(new_file_name);
+    new_path.push(new_name);
     fs::rename(file_path, &new_path)?;
     Ok(new_path)
 }
 
-// Function to display file with error handling
+// Function to display file details with error handling
 fn display_file_details(file_path: &path::Path, label: &str) -> Result<(), Box<dyn std::error::Error>> {
     let metadata = fs::metadata(file_path)?;
     let modified_time = metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs();
@@ -47,12 +38,18 @@ fn rename_files_in_directory(dir: &path::Path) -> std::io::Result<()> {
         let mut rng = rand::thread_rng();
         files.shuffle(&mut rng);
 
+        
+        let mut temp_dir_path = dir.to_path_buf();
+        temp_dir_path.push("temp");
+        fs::create_dir(temp_dir_path.as_path());
         for (index, entry) in files.iter().enumerate() {
             display_file_details(&entry.path(), "Before Rename").unwrap();
-            let file_name = format!("{:03}", index + 1); 
-            let new_path = move_and_rename_file(&entry.path(), dir, &file_name)?;
+            let file_name = format!("{:03}.csv", index + 1); // Adjust file extension as needed
+            let new_path = move_and_rename_file(&entry.path(), temp_dir_path.as_path(), &file_name)?;
             display_file_details(&new_path, "After Rename").unwrap();
         }
+        visit_sub_dirs(temp_dir_path.as_path(), dir);
+        fs::remove_dir(temp_dir_path.as_path());
     }
     Ok(())
 }
@@ -65,8 +62,9 @@ fn visit_dirs(dir: &path::Path, target_dir: &path::Path) -> std::io::Result<()> 
             let entry = entry?;
             let path = entry.path();
             if path.is_dir() {
+                // Recursively visit subdirectories
                 visit_sub_dirs(&path, &path)?;
-                rename_files_in_directory(&path)?;
+                rename_files_in_directory(&path);
             } else {
                 println!("File: {:?}", path);
             }
@@ -86,10 +84,17 @@ fn visit_sub_dirs(dir: &path::Path, target_dir: &path::Path) -> std::io::Result<
                 visit_sub_dirs(&path, target_dir)?;
                 fs::remove_dir(path);
             } else {
+                // Display file details before move
                 display_file_details(&path, "Before Move").unwrap();
+
+                // Move and rename file
                 let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
                 let new_path = move_and_rename_file(&path, target_dir, &file_name)?;
+
+                // Display file details
                 display_file_details(&new_path, "After Move").unwrap();
+
+                // Change file timestamp to a random date in the last 10 days
                 change_file_timestamp(&new_path)?;
             }
         }
@@ -102,8 +107,14 @@ fn change_file_timestamp(file_path: &path::Path) -> std::io::Result<()> {
     let now = SystemTime::now();
     let random_offset = Duration::from_secs(rand::random::<u64>() % (10 * 24 * 60 * 60)); // Up to 10 days
     let new_time = now - random_offset;
+
+    // Display details before the timestamp
     display_file_details(file_path, "Before Timestamp Change").unwrap();
+
+    // Change file's timestamp
     filetime::set_file_mtime(file_path, FileTime::from_system_time(new_time))?;
+
+    // Display details after the timestamp
     display_file_details(file_path, "After Timestamp Change").unwrap();
     Ok(())
 }
@@ -119,7 +130,11 @@ fn run_tasks(main_directory: &path::Path, target_directory: &path::Path, interva
         // Visit directories and move files
         visit_dirs(&main_directory, &target_directory)?;
 
+        // Rename files in target directory
+
         println!("Completed run {}/{}. Duration: {:?}", run, times, start_time.elapsed());
+        
+        // Sleep for the interval unless last run
         if run < times {
             thread::sleep(Duration::from_secs(interval_seconds));
         }
@@ -130,15 +145,13 @@ fn run_tasks(main_directory: &path::Path, target_directory: &path::Path, interva
 }
 
 fn main() -> std::io::Result<()> {
-    //change based on system
+    // Use double backslashes for Windows paths or raw strings (r"")
     let main_directory = path::PathBuf::from(r"C:\Users\cheet\data");
     let target_directory = path::PathBuf::from(r"C:\Users\cheet\data");
+
     // Set the interval (in seconds) and number of automatic runs
     let interval_seconds = 30; // Change to 604800 for a weekly interval (60 * 60 * 24 * 7)
     let number_of_runs = 3;
 
     run_tasks(&main_directory, &target_directory, interval_seconds, number_of_runs)
 }
-
-
-
