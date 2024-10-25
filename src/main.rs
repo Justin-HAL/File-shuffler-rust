@@ -1,9 +1,9 @@
 use rand::seq::SliceRandom;
 use std::fs::{self};
 use std::path;
-use std::time::{SystemTime, UNIX_EPOCH, Duration, SystemTimeError};
+use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::io::{self};
-use std::{thread, time::Instant};
+use std::thread;
 use filetime::FileTime;
 
 // Function to move a file to a target directory and rename it
@@ -41,21 +41,22 @@ fn rename_files_in_directory(dir: &path::Path) -> std::io::Result<()> {
         
         let mut temp_dir_path = dir.to_path_buf();
         temp_dir_path.push("temp");
-        fs::create_dir(temp_dir_path.as_path());
+        let _ =fs::create_dir(temp_dir_path.as_path());
+
         for (index, entry) in files.iter().enumerate() {
             display_file_details(&entry.path(), "Before Rename").unwrap();
             let file_name = format!("{:03}.csv", index + 1); // Adjust file extension as needed
             let new_path = move_and_rename_file(&entry.path(), temp_dir_path.as_path(), &file_name)?;
             display_file_details(&new_path, "After Rename").unwrap();
         }
-        visit_sub_dirs(temp_dir_path.as_path(), dir);
-        fs::remove_dir(temp_dir_path.as_path());
+        let _ = visit_sub_dirs(temp_dir_path.as_path(), dir);
+        let _ = fs::remove_dir(temp_dir_path.as_path());
     }
     Ok(())
 }
 
 // Visit directories and process files
-fn visit_dirs(dir: &path::Path, target_dir: &path::Path) -> std::io::Result<()> {
+fn visit_dirs(dir: &path::Path) -> std::io::Result<()> {
     println!("Processing directories...");
     if dir.is_dir() {
         for entry in fs::read_dir(dir)? {
@@ -64,7 +65,7 @@ fn visit_dirs(dir: &path::Path, target_dir: &path::Path) -> std::io::Result<()> 
             if path.is_dir() {
                 // Recursively visit subdirectories
                 visit_sub_dirs(&path, &path)?;
-                rename_files_in_directory(&path);
+                let _ = rename_files_in_directory(&path);
             } else {
                 println!("File: {:?}", path);
             }
@@ -82,7 +83,7 @@ fn visit_sub_dirs(dir: &path::Path, target_dir: &path::Path) -> std::io::Result<
             let path = entry.path();
             if path.is_dir() {
                 visit_sub_dirs(&path, target_dir)?;
-                fs::remove_dir(path);
+                let _ =  fs::remove_dir(path);
             } else {
                 // Display file details before move
                 display_file_details(&path, "Before Move").unwrap();
@@ -123,12 +124,11 @@ fn change_file_timestamp(file_path: &path::Path) -> std::io::Result<()> {
 fn run_tasks(main_directory: &path::Path, target_directory: &path::Path, interval_seconds: u64, do_loop: bool) -> std::io::Result<()> {
     loop {
         println!("new run");
-        let start_time = Instant::now();
-
+       
         fs::create_dir_all(&target_directory)?;
 
         // Visit directories and move files
-        visit_dirs(&main_directory, &target_directory)?;
+        visit_dirs(&main_directory)?;
 
         // Rename files in target directory
 
@@ -167,13 +167,13 @@ fn main()  {//-> std::io::Result<()>
  //30 for 30 second interval, 604800 for a weekly interval (60 * 60 * 24 * 7)
     
     if input == 1{
-        run_tasks(&main_directory, &target_directory, 1,false);
+        let _ = run_tasks(&main_directory, &target_directory, 1,false);
     } else if input == 2{
-        run_tasks(&main_directory, &target_directory, 30,true);
+        let _ =  run_tasks(&main_directory, &target_directory, 30,true);
     } else if input == 3{
-        run_tasks(&main_directory, &target_directory, 604800,true);
+        let _ =  run_tasks(&main_directory, &target_directory, 604800,true);
     } else {
-        println!("not a correct input");
+        let _ =  println!("not a correct input");
     }
     
 
