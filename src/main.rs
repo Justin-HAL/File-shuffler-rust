@@ -124,16 +124,16 @@ fn visit_sub_dirs(dir: &std::path::Path, target_dir: &std::path::Path) -> std::i
     Ok(())
 }
 
-// Function to change the timestamp of a file
 fn change_file_timestamp(file_path: &std::path::Path) -> std::io::Result<()> {
-    let now = SystemTime::now();
-    let random_offset = Duration::from_secs(rand::random::<u64>() % (10 * 24 * 60 * 60)); // Up to 10 days
-    let new_time = now - random_offset;
+    // Set base time to September 22, 2023 00:00:00
+    let seconds_since_epoch = 1695340800; // Unix timestamp for 2023-09-22 00:00:00
+    let random_offset = rand::random::<u64>() % (10 * 24 * 60 * 60); // Random offset up to 10 days
+    
+    let new_time = SystemTime::UNIX_EPOCH + Duration::from_secs(seconds_since_epoch + random_offset);
     let file_time = FileTime::from_system_time(new_time);
 
     display_file_details(file_path, "Before Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
 
-    // Set modification time
     filetime::set_file_mtime(file_path, file_time)?;
 
     display_file_details(file_path, "After Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
