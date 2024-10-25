@@ -5,8 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::io::{self};
 use std::thread;
 use filetime::FileTime;
-use chrono::{DateTime, Utc};
-
+use chrono::{DateTime, Utc, Local};
 
 // Function to move a file to a target directory and rename it
 fn move_and_rename_file(
@@ -23,16 +22,27 @@ fn move_and_rename_file(
 // Function to display file details with error handling
 fn display_file_details(file_path: &std::path::Path, label: &str) -> Result<(), Box<dyn std::error::Error>> {
     let metadata = fs::metadata(file_path)?;
-    let created_time = metadata.created()?;
-    let datetime: DateTime<Utc> = created_time.into();
-    let formatted_time = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
     
-    println!("[{}] File: {:?}, created Timestamp: {}", label, file_path, formatted_time);
-    let created_time = metadata.created()?;
-    let datetime: DateTime<Utc> = created_time.into();
-    let formatted_time = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+    // Get both creation and modification times
+    let created_time = metadata.created().ok();
+    let modified_time = metadata.modified().ok();
     
-    println!("[{}] File: {:?}, created Timestamp: {}", label, file_path, formatted_time);
+    // Convert to local time for better readability
+    let created_str = if let Some(time) = created_time {
+        let local_time: DateTime<Local> = time.into();
+        format!("Created: {}", local_time.format("%Y-%m-%d %H:%M:%S"))
+    } else {
+        "Created: Not available".to_string()
+    };
+    
+    let modified_str = if let Some(time) = modified_time {
+        let local_time: DateTime<Local> = time.into();
+        format!("Modified: {}", local_time.format("%Y-%m-%d %H:%M:%S"))
+    } else {
+        "Modified: Not available".to_string()
+    };
+    
+    println!("[{}] File: {:?}\n    {}\n    {}", label, file_path, created_str, modified_str);
     Ok(())
 }
 
@@ -76,7 +86,7 @@ fn visit_dirs(dir: &std::path::Path) -> std::io::Result<()> {
                 if let Some(dir_name) = path.file_name() {
                     let dir_name = dir_name.to_string_lossy();
                     if ["takeoff", "land", "right", "left", "forward", "backward"].contains(&dir_name.as_ref()) {
-                        println!("Processing category: {}", dir_name);
+                        println!("\nProcessing category: {}", dir_name);
                         visit_sub_dirs(&path, &path)?;
                         let _ = rename_files_in_directory(&path);
                     }
@@ -119,10 +129,13 @@ fn change_file_timestamp(file_path: &std::path::Path) -> std::io::Result<()> {
     let now = SystemTime::now();
     let random_offset = Duration::from_secs(rand::random::<u64>() % (10 * 24 * 60 * 60)); // Up to 10 days
     let new_time = now - random_offset;
+    let file_time = FileTime::from_system_time(new_time);
 
     display_file_details(file_path, "Before Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
 
-    filetime::set_file_mtime(file_path, FileTime::from_system_time(new_time))?;
+    // Set both creation and modification times
+    filetime::set_file_mtime(file_path, file_time)?;
+    filetime::set_file_ctime(file_path, file_time)?;
 
     display_file_details(file_path, "After Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
     Ok(())
