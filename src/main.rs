@@ -148,7 +148,6 @@ fn run_tasks(main_directory: &std::path::Path, target_directory: &std::path::Pat
 fn main() {
     println!("File Processing Program");
     println!("Authors: Justin Halvorson, Daniel Leone, Ben Tran");
-    println!("CSE 598 Fall 2023\n");
 
     // Allow selection of path configuration
     println!("Select path configuration:");
