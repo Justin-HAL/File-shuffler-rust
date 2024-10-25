@@ -7,7 +7,6 @@ use std::thread;
 use filetime::FileTime;
 use chrono::{DateTime, Utc};
 
-// Author: [Your Name]
 
 // Function to move a file to a target directory and rename it
 fn move_and_rename_file(
@@ -147,10 +146,14 @@ fn run_tasks(main_directory: &std::path::Path, target_directory: &std::path::Pat
 }
 
 fn main() {
+    println!("File Processing Program");
+    println!("Authors: Justin Halvorson, Daniel Leone, Ben Tran");
+    println!("CSE 598 Fall 2023\n");
+
     // Allow selection of path configuration
     println!("Select path configuration:");
-    println!("1. Saved Path 1 (C:\\Users\\bambo\\Downloads\\data\\data)");
-    println!("2. Saved Path 2 (C:\\Users\\cheet\\data)");
+    println!("1. Use default paths (C:\\Users\\bambo\\Downloads\\data\\data)");
+    println!("2. Use alternate paths (C:\\Users\\cheet\\data)");
     println!("3. Enter custom paths");
 
     let mut input = String::new();
