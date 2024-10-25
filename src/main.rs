@@ -21,8 +21,8 @@ fn move_and_rename_file(
 // Function to display file details with error handling
 fn display_file_details(file_path: &path::Path, label: &str) -> Result<(), Box<dyn std::error::Error>> {
     let metadata = fs::metadata(file_path)?;
-    let modified_time = metadata.modified()?.duration_since(UNIX_EPOCH)?.as_secs();
-    println!("[{}] File: {:?}, Modified Timestamp: {}", label, file_path, modified_time);
+    let created_time = metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs();
+    println!("[{}] File: {:?}, created Timestamp: {}", label, file_path, created_time);
     Ok(())
 }
 
@@ -120,9 +120,9 @@ fn change_file_timestamp(file_path: &path::Path) -> std::io::Result<()> {
 }
 
 // Function to run the tasks and automation options
-fn run_tasks(main_directory: &path::Path, target_directory: &path::Path, interval_seconds: u64, times: u32) -> std::io::Result<()> {
-    for run in 1..=times {
-        println!("--- Run {}/{} ---", run, times);
+fn run_tasks(main_directory: &path::Path, target_directory: &path::Path, interval_seconds: u64, do_loop: bool) -> std::io::Result<()> {
+    loop {
+        println!("new run");
         let start_time = Instant::now();
 
         fs::create_dir_all(&target_directory)?;
@@ -132,26 +132,52 @@ fn run_tasks(main_directory: &path::Path, target_directory: &path::Path, interva
 
         // Rename files in target directory
 
-        println!("Completed run {}/{}. Duration: {:?}", run, times, start_time.elapsed());
-        
+        println!("Completed run");
+        println!("All automated tasks completed.");
+
         // Sleep for the interval unless last run
-        if run < times {
-            thread::sleep(Duration::from_secs(interval_seconds));
+        if !do_loop{
+            break;
         }
+        
+        thread::sleep(Duration::from_secs(interval_seconds));
+        
     }
 
-    println!("All automated tasks completed.");
+    
     Ok(())
 }
 
-fn main() -> std::io::Result<()> {
+fn main()  {//-> std::io::Result<()>
     // Use double backslashes for Windows paths or raw strings (r"")
     let main_directory = path::PathBuf::from(r"C:\Users\cheet\data");
     let target_directory = path::PathBuf::from(r"C:\Users\cheet\data");
 
-    // Set the interval (in seconds) and number of automatic runs
-    let interval_seconds = 30; // Change to 604800 for a weekly interval (60 * 60 * 24 * 7)
-    let number_of_runs = 3;
+    
 
-    run_tasks(&main_directory, &target_directory, interval_seconds, number_of_runs)
+    println!("mannual shuffle: 1\nRun every 30 seconds: 2\nRun once a week: 3");
+    let mut input = String::new();
+
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read line");
+
+    let input: u32 = input.trim().parse().expect("failed to read number");
+    
+ //30 for 30 second interval, 604800 for a weekly interval (60 * 60 * 24 * 7)
+    
+    if input == 1{
+        run_tasks(&main_directory, &target_directory, 1,false);
+    } else if input == 2{
+        run_tasks(&main_directory, &target_directory, 30,true);
+    } else if input == 3{
+        run_tasks(&main_directory, &target_directory, 604800,true);
+    } else {
+        println!("not a correct input");
+    }
+    
+
+    
+
+   
 }
