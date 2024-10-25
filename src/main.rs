@@ -28,6 +28,11 @@ fn display_file_details(file_path: &std::path::Path, label: &str) -> Result<(), 
     let formatted_time = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
     
     println!("[{}] File: {:?}, created Timestamp: {}", label, file_path, formatted_time);
+    let created_time = metadata.created()?;
+    let datetime: DateTime<Utc> = created_time.into();
+    let formatted_time = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+    
+    println!("[{}] File: {:?}, created Timestamp: {}", label, file_path, formatted_time);
     Ok(())
 }
 
