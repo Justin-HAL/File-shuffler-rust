@@ -1,11 +1,11 @@
 use rand::seq::SliceRandom;
 use std::fs::{self};
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::time::{SystemTime, Duration};
 use std::io::{self};
 use std::thread;
 use filetime::FileTime;
-use chrono::{DateTime, Utc, Local};
+use chrono::{DateTime, Local};
 
 // Function to move a file to a target directory and rename it
 fn move_and_rename_file(
@@ -133,9 +133,8 @@ fn change_file_timestamp(file_path: &std::path::Path) -> std::io::Result<()> {
 
     display_file_details(file_path, "Before Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
 
-    // Set both creation and modification times
+    // Set modification time
     filetime::set_file_mtime(file_path, file_time)?;
-    filetime::set_file_ctime(file_path, file_time)?;
 
     display_file_details(file_path, "After Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
     Ok(())
