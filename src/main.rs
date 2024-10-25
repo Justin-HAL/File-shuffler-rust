@@ -1,18 +1,20 @@
 use rand::seq::SliceRandom;
 use std::fs::{self};
-use std::path;
+use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::io::{self};
 use std::thread;
 use filetime::FileTime;
 use chrono::{DateTime, Utc};
 
+// Author: [Your Name]
+
 // Function to move a file to a target directory and rename it
 fn move_and_rename_file(
-    file_path: &path::Path,
-    target_dir: &path::Path,
+    file_path: &std::path::Path,
+    target_dir: &std::path::Path,
     new_name: &str,
-) -> std::io::Result<path::PathBuf> {
+) -> std::io::Result<PathBuf> {
     let mut new_path = target_dir.to_path_buf();
     new_path.push(new_name);
     fs::rename(file_path, &new_path)?;
@@ -20,7 +22,7 @@ fn move_and_rename_file(
 }
 
 // Function to display file details with error handling
-fn display_file_details(file_path: &path::Path, label: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn display_file_details(file_path: &std::path::Path, label: &str) -> Result<(), Box<dyn std::error::Error>> {
     let metadata = fs::metadata(file_path)?;
     let created_time = metadata.created()?;
     let datetime: DateTime<Utc> = created_time.into();
@@ -31,7 +33,7 @@ fn display_file_details(file_path: &path::Path, label: &str) -> Result<(), Box<d
 }
 
 // Function to randomly rename files in a directory
-fn rename_files_in_directory(dir: &path::Path) -> std::io::Result<()> {
+fn rename_files_in_directory(dir: &std::path::Path) -> std::io::Result<()> {
     if dir.is_dir() {
         let mut files: Vec<_> = fs::read_dir(dir)?
             .filter_map(Result::ok)
@@ -42,16 +44,15 @@ fn rename_files_in_directory(dir: &path::Path) -> std::io::Result<()> {
         let mut rng = rand::thread_rng();
         files.shuffle(&mut rng);
 
-        
         let mut temp_dir_path = dir.to_path_buf();
         temp_dir_path.push("temp");
-        let _ =fs::create_dir(temp_dir_path.as_path());
+        let _ = fs::create_dir(temp_dir_path.as_path());
 
         for (index, entry) in files.iter().enumerate() {
-            display_file_details(&entry.path(), "Before Rename").unwrap();
-            let file_name = format!("{:03}.csv", index + 1); // Adjust file extension as needed
+            display_file_details(&entry.path(), "Before Rename").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
+            let file_name = format!("{:03}.csv", index + 1);
             let new_path = move_and_rename_file(&entry.path(), temp_dir_path.as_path(), &file_name)?;
-            display_file_details(&new_path, "After Rename").unwrap();
+            display_file_details(&new_path, "After Rename").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
         }
         let _ = visit_sub_dirs(temp_dir_path.as_path(), dir);
         let _ = fs::remove_dir(temp_dir_path.as_path());
@@ -60,16 +61,22 @@ fn rename_files_in_directory(dir: &path::Path) -> std::io::Result<()> {
 }
 
 // Visit directories and process files
-fn visit_dirs(dir: &path::Path) -> std::io::Result<()> {
+fn visit_dirs(dir: &std::path::Path) -> std::io::Result<()> {
     println!("Processing directories...");
     if dir.is_dir() {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_dir() {
-                // Recursively visit subdirectories
-                visit_sub_dirs(&path, &path)?;
-                let _ = rename_files_in_directory(&path);
+                // Process only category directories
+                if let Some(dir_name) = path.file_name() {
+                    let dir_name = dir_name.to_string_lossy();
+                    if ["takeoff", "land", "right", "left", "forward", "backward"].contains(&dir_name.as_ref()) {
+                        println!("Processing category: {}", dir_name);
+                        visit_sub_dirs(&path, &path)?;
+                        let _ = rename_files_in_directory(&path);
+                    }
+                }
             } else {
                 println!("File: {:?}", path);
             }
@@ -79,7 +86,7 @@ fn visit_dirs(dir: &path::Path) -> std::io::Result<()> {
 }
 
 // Visit subdirectories, move files and change timestamps
-fn visit_sub_dirs(dir: &path::Path, target_dir: &path::Path) -> std::io::Result<()> {
+fn visit_sub_dirs(dir: &std::path::Path, target_dir: &std::path::Path) -> std::io::Result<()> {
     println!("Processing subdirectories...");
     if dir.is_dir() {
         for entry in fs::read_dir(dir)? {
@@ -87,19 +94,15 @@ fn visit_sub_dirs(dir: &path::Path, target_dir: &path::Path) -> std::io::Result<
             let path = entry.path();
             if path.is_dir() {
                 visit_sub_dirs(&path, target_dir)?;
-                let _ =  fs::remove_dir(path);
+                let _ = fs::remove_dir(path);
             } else {
-                // Display file details before move
-                display_file_details(&path, "Before Move").unwrap();
+                display_file_details(&path, "Before Move").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
 
-                // Move and rename file
                 let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
                 let new_path = move_and_rename_file(&path, target_dir, &file_name)?;
 
-                // Display file details
-                display_file_details(&new_path, "After Move").unwrap();
+                display_file_details(&new_path, "After Move").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
 
-                // Change file timestamp to a random date in the last 10 days
                 change_file_timestamp(&new_path)?;
             }
         }
@@ -108,80 +111,108 @@ fn visit_sub_dirs(dir: &path::Path, target_dir: &path::Path) -> std::io::Result<
 }
 
 // Function to change the timestamp of a file
-fn change_file_timestamp(file_path: &path::Path) -> std::io::Result<()> {
+fn change_file_timestamp(file_path: &std::path::Path) -> std::io::Result<()> {
     let now = SystemTime::now();
     let random_offset = Duration::from_secs(rand::random::<u64>() % (10 * 24 * 60 * 60)); // Up to 10 days
     let new_time = now - random_offset;
 
-    // Display details before the timestamp
-    display_file_details(file_path, "Before Timestamp Change").unwrap();
+    display_file_details(file_path, "Before Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
 
-    // Change file's timestamp
     filetime::set_file_mtime(file_path, FileTime::from_system_time(new_time))?;
 
-    // Display details after the timestamp
-    display_file_details(file_path, "After Timestamp Change").unwrap();
+    display_file_details(file_path, "After Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
     Ok(())
 }
 
 // Function to run the tasks and automation options
-fn run_tasks(main_directory: &path::Path, target_directory: &path::Path, interval_seconds: u64, do_loop: bool) -> std::io::Result<()> {
+fn run_tasks(main_directory: &std::path::Path, target_directory: &std::path::Path, interval_seconds: u64, do_loop: bool) -> std::io::Result<()> {
     loop {
-        println!("new run");
+        println!("\nNew run starting");
+        println!("Processing directory: {:?}", main_directory);
        
         fs::create_dir_all(&target_directory)?;
 
-        // Visit directories and move files
         visit_dirs(&main_directory)?;
-
-        // Rename files in target directory
 
         println!("Completed run");
         println!("All automated tasks completed.");
 
-        // Sleep for the interval unless last run
-        if !do_loop{
+        if !do_loop {
             break;
         }
         
         thread::sleep(Duration::from_secs(interval_seconds));
-        
     }
-
-    
     Ok(())
 }
 
-fn main()  {//-> std::io::Result<()>
-    // Use double backslashes for Windows paths or raw strings (r"")
-    let main_directory = path::PathBuf::from(r"C:\Users\cheet\data");
-    let target_directory = path::PathBuf::from(r"C:\Users\cheet\data");
+fn main() {
+    // Allow selection of path configuration
+    println!("Select path configuration:");
+    println!("1. Saved Path 1 (C:\\Users\\bambo\\Downloads\\data\\data)");
+    println!("2. Saved Path 2 (C:\\Users\\cheet\\data)");
+    println!("3. Enter custom paths");
 
-    
-
-    println!("mannual shuffle: 1\nRun every 30 seconds: 2\nRun once a week: 3");
     let mut input = String::new();
-
     io::stdin()
         .read_line(&mut input)
         .expect("Failed to read line");
 
-    let input: u32 = input.trim().parse().expect("failed to read number");
+    let (main_directory, target_directory) = match input.trim() {
+        "1" => (
+            PathBuf::from(r"C:\Users\bambo\Downloads\data\data"),
+            PathBuf::from(r"C:\Users\bambo\Downloads\data\data")
+        ),
+        "2" => (
+            PathBuf::from(r"C:\Users\cheet\data"),
+            PathBuf::from(r"C:\Users\cheet\data")
+        ),
+        "3" => {
+            println!("Enter main directory path:");
+            let mut path = String::new();
+            io::stdin().read_line(&mut path).expect("Failed to read path");
+            let main_dir = PathBuf::from(path.trim());
+            
+            println!("Enter target directory path (or press enter to use same as main):");
+            let mut target_path = String::new();
+            io::stdin().read_line(&mut target_path).expect("Failed to read path");
+            let target_dir = if target_path.trim().is_empty() {
+                main_dir.clone()
+            } else {
+                PathBuf::from(target_path.trim())
+            };
+            
+            (main_dir, target_dir)
+        },
+        _ => {
+            println!("Invalid input, using default paths");
+            (
+                PathBuf::from(r"C:\Users\bambo\Downloads\data\data"),
+                PathBuf::from(r"C:\Users\bambo\Downloads\data\data")
+            )
+        }
+    };
+
+    println!("\nSelected paths:");
+    println!("Main directory: {:?}", main_directory);
+    println!("Target directory: {:?}", target_directory);
+
+    println!("\nSelect operation mode:");
+    println!("1. Manual shuffle");
+    println!("2. Run every 30 seconds");
+    println!("3. Run once a week");
     
- //30 for 30 second interval, 604800 for a weekly interval (60 * 60 * 24 * 7)
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read line");
+
+    let input: u32 = input.trim().parse().expect("Failed to parse number");
     
-    if input == 1{
-        let _ = run_tasks(&main_directory, &target_directory, 1,false);
-    } else if input == 2{
-        let _ =  run_tasks(&main_directory, &target_directory, 30,true);
-    } else if input == 3{
-        let _ =  run_tasks(&main_directory, &target_directory, 604800,true);
-    } else {
-        let _ =  println!("not a correct input");
+    match input {
+        1 => run_tasks(&main_directory, &target_directory, 1, false).unwrap_or_else(|e| println!("Error: {}", e)),
+        2 => run_tasks(&main_directory, &target_directory, 30, true).unwrap_or_else(|e| println!("Error: {}", e)),
+        3 => run_tasks(&main_directory, &target_directory, 604800, true).unwrap_or_else(|e| println!("Error: {}", e)),
+        _ => println!("Not a correct input"),
     }
-    
-
-    
-
-   
 }
