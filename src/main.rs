@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use std::io::{self};
 use std::thread;
 use filetime::FileTime;
+use chrono::{DateTime, Utc};
 
 // Function to move a file to a target directory and rename it
 fn move_and_rename_file(
@@ -21,8 +22,11 @@ fn move_and_rename_file(
 // Function to display file details with error handling
 fn display_file_details(file_path: &path::Path, label: &str) -> Result<(), Box<dyn std::error::Error>> {
     let metadata = fs::metadata(file_path)?;
-    let created_time = metadata.created()?.duration_since(UNIX_EPOCH)?.as_secs();
-    println!("[{}] File: {:?}, created Timestamp: {}", label, file_path, created_time);
+    let created_time = metadata.created()?;
+    let datetime: DateTime<Utc> = created_time.into();
+    let formatted_time = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+    
+    println!("[{}] File: {:?}, created Timestamp: {}", label, file_path, formatted_time);
     Ok(())
 }
 
