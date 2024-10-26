@@ -131,16 +131,20 @@ fn visit_sub_dirs(dir: &std::path::Path, target_dir: &std::path::Path) -> std::i
 }
 
 fn change_file_timestamp(file_path: &std::path::Path) -> std::io::Result<()> {
-    // Set base time to September 22, 2023 00:00:00
-    let seconds_since_epoch = 1695340800; // Unix timestamp for 2023-09-22 00:00:00
-    let random_offset = rand::random::<u64>() % (10 * 24 * 60 * 60); // Random offset up to 10 days
-    
-    let new_time = SystemTime::UNIX_EPOCH + Duration::from_secs(seconds_since_epoch + random_offset);
+    let now = SystemTime::now();
+    let random_offset = Duration::from_secs(rand::random::<u64>() % (10 * 24 * 60 * 60)); // Random time up to 10 days
+    let new_time = now - random_offset; // This ensures date is within last 10 days from now
     let file_time = FileTime::from_system_time(new_time);
 
     display_file_details(file_path, "Before Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
 
-    filetime::set_file_mtime(file_path, file_time)?;
+    // Try to set both creation and modification times
+    if let Ok(_) = filetime::set_file_mtime(file_path, file_time) {
+        println!("Successfully set modification time");
+    }
+    if let Ok(_) = filetime::set_file_atime(file_path, file_time) {
+        println!("Successfully set access time");
+    }
 
     display_file_details(file_path, "After Timestamp Change").unwrap_or_else(|e| println!("Error displaying file details: {}", e));
     Ok(())
