@@ -179,7 +179,7 @@ fn main() {
     // Allow selection of path configuration
     println!("Select path configuration:");
     println!("1. Use default paths (C:\\Users\\bambo\\Downloads\\data\\data)");
-    println!("2. Use alternate paths (C:\data)");
+    println!("2. Use alternate paths (C:\\data)");
     println!("3. Enter custom paths");
 
     let mut input = String::new();
