@@ -1,3 +1,9 @@
+//Group 11
+//team members:
+//Ben Tran
+//Daniel Leone
+//Justin Halvorson
+
 use rand::seq::SliceRandom;
 use std::fs::{self};
 use std::path::PathBuf;
@@ -169,7 +175,7 @@ fn main() {
     // Allow selection of path configuration
     println!("Select path configuration:");
     println!("1. Use default paths (C:\\Users\\bambo\\Downloads\\data\\data)");
-    println!("2. Use alternate paths (C:\\Users\\cheet\\data)");
+    println!("2. Use alternate paths (C:\data)");
     println!("3. Enter custom paths");
 
     let mut input = String::new();
@@ -183,8 +189,8 @@ fn main() {
             PathBuf::from(r"C:\Users\bambo\Downloads\data\data")
         ),
         "2" => (
-            PathBuf::from(r"C:\Users\cheet\data"),
-            PathBuf::from(r"C:\Users\cheet\data")
+            PathBuf::from(r"C:\data"),
+            PathBuf::from(r"C:\data")
         ),
         "3" => {
             println!("Enter main directory path:");
